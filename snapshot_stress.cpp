@@ -3,47 +3,50 @@
 #include <vector>
 #include <iostream>
 
-void snapshot_consistency(){
+void snapshot_stress(){
 
     KVStore<int, int> kv;
+    
+    const int num_threads = 8;
+    const int num_ops = 50000;
 
-    const int num_threads = 4;
-    const int num_ops = 1000;
-
-    auto writer = [&](int id){
+    auto worker = [&] (int id){
         for(int i = 0; i < num_ops; ++i){
-            kv.put(i, id * 1000 + i);
-        }
-    };
-
-    auto snapshot = [&]() {
-        for (int i = 0; i < 10; ++i) {
-            auto snap = kv.snapshot();
-
-            std::cout << "Snapshot #" << i << " contents:\n";
-            for (const auto& [k, v] : *snap) {
-                std::cout << "  Key: " << k << ", Value: " << v;
-                if (v < k) std::cout << "  <-- INCONSISTENT!";
-                std::cout << "\n";
+            if(i % 20 == 0){
+                kv.put(i, id);
+                if (i % 1000 == 0){
+                    std::cout << "[Thread " << id << "] Wrote key " << i << " with value " << id << "\n";
+                }
             }
-            std::cout << "-------------------------\n";
+            else{
+                int val;
+                kv.get(i, val);
+                if(i % 10000 == 0){
+                    std::cout << "[Thread " << id << "] Read key " << i << " got value " << val << "\n";
+                }
+            }
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            if(i % 10000 == 0) {       
+                auto snap = kv.snapshot();
+                std::cout << "[Thread " << id << "] Snapshot taken at iteration " << i
+                          << " with " << snap->size() << " keys.\n";
+
+                
+                int count = 0;
+                for(const auto& [k,v] : *snap) {
+                    if(count++ >= 5) break; 
+                    std::cout << "    Snapshot Key: " << k << ", Value: " << v << "\n";
+                }
+                std::cout << "-------------------------\n";
+            }
         }
     };
-
-
 
     std::vector<std::thread> threads;
-    for (int t = 0; t < num_threads; ++t){
-        threads.emplace_back(writer, t);
-    }
-    std::thread snap_thread(snapshot);
+    for(int t = 0; t < num_threads; ++t)
+        threads.emplace_back(worker, t);
 
-    for (auto& th: threads) th.join();
-    snap_thread.join();
-
-    std::cout << "Snapshot consistency test completed.";
-
+    for(auto& th : threads) th.join();
+    std::cout << "Snapshot stress test completed.\n";
 
 }
