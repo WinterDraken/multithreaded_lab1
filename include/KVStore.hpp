@@ -14,6 +14,7 @@ class KVStore{
         mutable FairShareMutex snapshot_lock;
 
     public:
+
         void put(const Key& key, const Value& value){
             rw_lock.lock();
             store[key] = value;
