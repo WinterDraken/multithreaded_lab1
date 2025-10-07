@@ -1,15 +1,19 @@
 #include "KVStore.hpp"
 #include <iostream>
+#include "snapshot_isolation.hpp"
 
 void snapshot_isolation(){
     KVStore<int, int> kv;
 
-    for(int i = 0; i < 100; ++i) kv.put(i, i);
-
+    for(int i = 0; i < 100; ++i) {
+        kv.put(i, i);
+    }
     kv.snapshot();
 
-    for(int i = 0; i < 100; ++i) kv.put(i, i + 1000);
-
+    for(int i = 0; i < 100; ++i) {
+        kv.put(i, i + 1000);
+    }
+    
     kv.snapshot();
 
     auto snap1 = kv.get_snapshot(0);

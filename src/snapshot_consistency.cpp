@@ -2,6 +2,8 @@
 #include <thread>
 #include <vector>
 #include <iostream>
+#include "snapshot_consistency.hpp"
+
 
 void snapshot_consistency(){
 

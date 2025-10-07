@@ -1,16 +1,16 @@
 #pragma once
 #include <unordered_map>
-#include <string>
 #include <memory>
 #include <vector>
 #include "FairShareMutex.hpp"
 
+
 template <typename Key, typename Value>
-class KVStore{
+class UpgradedKVStore {
     private:
         std::unordered_map<Key, Value> store;
         FairShareMutex rw_lock;
-
+        
         std::vector<std::shared_ptr<const std::unordered_map<Key, Value>>> snapshot_vector;
         mutable FairShareMutex snapshot_lock;
 
@@ -20,10 +20,11 @@ class KVStore{
             store[key] = value;
             rw_lock.unlock();
         }
-        
-        void erase(const Key& key){
+
+        void put_batch(const std::vector<std::pair<Key, Value>>& batch){
             rw_lock.lock();
-            store.erase(key);
+            for(const auto& [k,v] : batch)
+                store[k] = v;
             rw_lock.unlock();
         }
 
@@ -37,12 +38,26 @@ class KVStore{
             }
             rw_lock.shared_unlock();
             return false;
-
         }
 
-        std::shared_ptr<const std::unordered_map<Key, Value>> snapshot(){
+        bool upgradeable_get_and_put(const Key& key, const Value& new_val){
             rw_lock.shared_lock();
-            auto snap = std::make_shared<const std::unordered_map <Key, Value>>(store);
+            auto it = store.find(key);
+            if(it == store.end()){
+                rw_lock.shared_unlock();
+                return false;
+            }
+            
+            rw_lock.shared_unlock();
+            rw_lock.lock();
+            store[key] = new_val;
+            rw_lock.unlock();
+            return true;
+        }
+
+         std::shared_ptr<const std::unordered_map<Key, Value>> snapshot(){
+            rw_lock.shared_lock();
+            auto snap = std::make_shared<const std::unordered_map<Key, Value>>(store);
             rw_lock.shared_unlock();
 
             snapshot_lock.lock();
@@ -56,15 +71,15 @@ class KVStore{
             snapshot_vector.clear();
             snapshot_lock.unlock();
         }
-        
-        std::shared_ptr<const std::unordered_map<Key, Value>> get_snapshot(size_t index) const {
-            snapshot_lock.shared_lock();      
-            std::shared_ptr<const std::unordered_map<Key, Value>> snap = nullptr;
 
+        std::shared_ptr<const std::unordered_map<Key, Value>> get_snapshot(size_t index) const {
+            snapshot_lock.shared_lock();
+            std::shared_ptr<const std::unordered_map<Key, Value>> snap = nullptr;
+            
             if(index < snapshot_vector.size()) {
                 snap = snapshot_vector[index];
             }
-
+            
             snapshot_lock.shared_unlock();
             return snap;
         }
@@ -77,5 +92,6 @@ class KVStore{
             snapshot_lock.unlock();
         }
 
+        
 
 };
