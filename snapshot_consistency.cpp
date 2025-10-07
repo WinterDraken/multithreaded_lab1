@@ -1,4 +1,4 @@
-#include "KVStore.cpp"
+#include "KVStore.hpp"
 #include <thread>
 #include <vector>
 #include <iostream>

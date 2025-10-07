@@ -1,7 +1,7 @@
 #include <iostream>
-#include "snapshot_stress.cpp"
-#include "snapshot_consistency.cpp"
-#include "snapshot_isolation.cpp"
+#include "snapshot_stress.hpp"
+#include "snapshot_consistency.hpp"
+#include "snapshot_isolation.hpp"
 
 
 

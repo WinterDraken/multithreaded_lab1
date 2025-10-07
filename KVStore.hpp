@@ -1,3 +1,4 @@
+#pragma once
 #include <unordered_map>
 #include <string>
 #include <memory>
@@ -11,7 +12,7 @@ class KVStore{
         FairShareMutex rw_lock;
 
         std::vector<std::shared_ptr<const std::unordered_map<Key, Value>>> snapshot_vector;
-        FairShareMutex snapshot_lock;
+        mutable FairShareMutex snapshot_lock;
 
     public:
         void put(const Key& key, const Value& value){

@@ -1,4 +1,4 @@
-#include "KVStore.cpp"
+#include "KVStore.hpp"
 #include <iostream>
 
 void snapshot_isolation(){
